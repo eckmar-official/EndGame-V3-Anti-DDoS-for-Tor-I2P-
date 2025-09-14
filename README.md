@@ -1,108 +1,165 @@
-# ENDGAME V3
+# EndGame V3 — Self-Hosted Anti-DDoS Front for Tor & I2P
 
-This is the third and most likely final version of EndGame. The most popular anti-ddos solution on the darknet.
+EndGame V3 is a front-end shield that sits in front of your origin service (onion or i2p). It filters abusive traffic, rate-limits hostile clients, and challenges bots with a lightweight captcha—so legitimate users can reach your site while attacks are absorbed at the edge.
 
-EndGame is
+> **TL;DR**  
+> • **Free** to use, **self-hosted**, and runs locally (no third parties).  
+> • Works with **Tor** and **I2P**.  
+> • Optional **GoBalance** load-balancing for large scale.  
+> • Hardened defaults (fail2ban, rkhunter, chkrootkit) and tuned kernel/sysctl.
 
-- a front system designed to protect the core application servers on an onion service in a safe and private way.
-- locally complied and locally run (no trusted or middle party).
-- a combination of multiple different technologies working together in harmony (listed below).
-- FREE FOR ALL TO USE!
-- *arguably* magic ㄟ( ▔, ▔ )ㄏ
+---
 
-## Main Features
+## Table of Contents
+- [How It Works](#how-it-works)
+- [Key Features](#key-features)
+- [Requirements](#requirements)
+- [Before You Begin (Trust & Safety)](#before-you-begin-trust--safety)
+- [Quick Start](#quick-start)
+- [Configuration Guide](#configuration-guide)
+- [Branding the Front](#branding-the-front)
+- [Going Big: GoBalance](#going-big-gobalance)
+- [Tech Stack](#tech-stack)
+- [Support](#support)
+- [License](#license)
+- [Repo: Commit & Push](#repo-commit--push)
 
-- Fully scripted and easily deploy-able (for mass scaling!) on blank Debian 11 systems.
-- Full featured NGINX LUA script to filter packets and provide a captcha directly using the NGINX layer.
-- Rate limiting via Tor's V3 onion service circuit ID system with secondary rate limiting based on a testcookie like system.
-- Easy Configuration for both local and remote (over Tor) front systems.
-- Easily configurable and change-able to meet an onion service's needs.
-- I2P support out of the box (using i2pd)
-- NEW hardening and compromise check processes (fail2ban, rkhunter, debsecan)
-- NEW captcha processes and a captcha built in rust with zero runtime dependencies!
-- Various updates and security improvements in the lua script (it now sends you back to the queue if you fail 3 captchas)
-- Caching of nginx modules for faster deployment!
-- LOTS of kernel tweaks for both hardening and more efficient memory allocation for Tor (not so much i2p)
-- Fresh html and css that makes it very clear you are using the latest endgame!
-- Includes an onionbalance process completely written in go built for high traffic sites (see it in the sourcecode folder)
-- Includes a tor patch to require some minimum POW work for all introduction requests (stopping the introduction cell DDOS attacks bites)
+---
 
-It can also:
-- Cause you to grow a bigger dick than the asshole DDOSER (true *figurally*, lies *probably*)
-- Save you millions of dollars do to DDOSER's downing your site for ransom or for their extorting fees.
-- Make it look like you know what the fuck you are doing.
+## How It Works
 
-## How it works
+**Traffic path:**
 
-EndGame is a FRONT system. That is to say it filters the requests that a service will receive, blocks bad requests, and only passes good ones to the application server.
 
-At a request level it works like this:
+- Run **EndGame** on a separate machine from your origin.
+- EndGame proxies only **clean** requests to your backend.
+- With **GoBalance**, many EndGame fronts can sit behind a single “master onion,” distributing load under heavy traffic.
 
-`USER -> Tor/i2p -> Endgame Front -> Tor(optional) -> Backend (origin) Application Server`
+---
 
-*Endgame should be on a separate server to your backend server.* It only proxies content from your backend to the user. You will still need to configure your backend to handle requests from the Endgame Front.
+## Key Features
 
-This is the same system that anti-DDOS services like Cloudflare, Indusface, and Imperva use to protect websites from attacks. The difference is this is self-hosted and fully controlled by you for your own needs and made for darknet networks.
+- **Powerful request filtering** with NGINX + Lua, including inline captcha.
+- **Rate limiting** aware of Tor v3 circuit IDs, plus secondary cookie-based limits.
+- **I2P and Tor support** out of the box (toggle per your threat model).
+- **Hardening & compromise checks**: fail2ban, rkhunter, chkrootkit, debsecan.
+- **Performance tuning**: kernel/sysctl tweaks, module caching.
+- **GoBalance** (Go rewrite of onionbalance) for high-traffic scaling.
+- **Captcha in Rust** (no runtime deps) for fast challenge pages.
+- **Easy theming**: color, logo, favicon for queue/captcha pages.
 
-**On Tor, GoBalance (onionbalance) is central to really scale up protection and should be used with EndGame in production environments.**
+---
 
-What GoBalance does is take the various Endgame Front addresses and combine the descriptors together to create a distributed DNS round-robin like system on Tor. This allows for load balancing and prevents a single front from being overloaded. With GoBalance you can scale to hundreds of EndGame fronts that users can access from a single master onion (which we call in the configuration MASTERONION). The master onion is the address that GoBalance uses to sign and publish to the Tor network.
+## Requirements
 
-If you want to learn more about how GoBalance works go and read the [onionbalance documentation](https://onionbalance.readthedocs.io/en/latest/index.html). GoBalance is an improved fork of it written in go. To learn more about what makes Gobalance different go into the sourcecode directory and open the GoBalance folder.
+- **Fresh Debian 12 (bookworm)** host with root (or passwordless sudo).
+- Network access suitable for Tor and/or I2P (depending on your setup).
+- A separate **origin server** (onion or local lan) to receive proxied traffic.
 
-You can use Endgame without Gobalance (or onionbalance) but the protection would be limited by the single EndGame front.
+> **Note:** Older docs sometimes mention Debian 11. Use **Debian 12 (bookworm)** for the included installer.
 
-## Setup Process
+---
 
-If you want to use Gobalance, so you can load balance the requests coming in and get the real scalable protection, follow the parts below. If you don't skip to step 3 after setup 1.
+## Before You Begin (Trust & Safety)
 
-1. [Download the Latest EndGame Source from Dread](http://dreadytofatroptsdj6io7l3xptbet6onoyno2yv7jicoxknyazubrad.onion/d/endgame). Verify the archive signature and that it matches what is signed by /u/Paris. Extract the archive to your local machine. DO NOT BLINDLY USE ENDGAME FROM A RANDOM GITHUB REPO YOU FOUND. DON'T BE STUPID.
-2. Go to sourcecode/gobalance and build gobalance with [go](https://go.dev). Read the README.md about how to compile and generate the gobalance configuration. With that configuration you will be able to see your MASTERONION url. The starting before .key is your master onion address. You will use that as your MASTERONION in the EndGame.config ending it with '.onion'.
-3. Open up and edit the endgame.config, you will need to change your TORAUTHPASSWORD. Change it to a random alphanumeric password of your choice. This is just used for authentication on nginx's layer to send circuit kill commands.
-4. You have two options for how EndGame sends the traffic to your backend. You can have it direct it to an onion address, or you can have it locally proxy to a server on the same network.
-   1. Tor Proxy: You will need to set both of the BACKENDONION variables to your main onion service you want protected. This means your origin application server needs to have tor running with its own onion service address. You put that onion address on the BACKENDONION(1/2). If you have multiple backends (highly recommended) you can put different backend addresses to have load balancing and fallover. It's easy to add in even more by customizing endgame for your needs.
-   2. Local Proxy: Change LOCALPROXY to true and edit the PROXYPASSURL to the specific IP or hostname of your backend location. It will default to connect on port 80 via http but you can edit line 320 of the site.conf to change that to your specific needs.
-5. Enable I2PSETUP and/or TORSETUP by setting them to true. You can also enable TORINTRODEFENSE and TORPOWDEFENSE to provide more protection against introduction attacks on the Tor network.
-6. Edit KEY and SALT to a secure cookie value. PROTECT THESE VALUES. If they get leaked, an attacker could generate EndGame cookies and hurt your EndGame protection.
-   1. KEY: is your encryption key used for encryption. It should be to be between 68 and 128 random alphanumeric characters.
-   2. SALT: is your salt for the encryption key. It must be exactly 8 alphanumeric characters.
-7. Branding is important. EndGame makes it easy to use your own branding on it. By default, it will use dread's branding, but you should change it.
-   1. HEXCOLOR and HEXCOLORDARK are for the specific colors used on the pages. Set HEXCOLOR to your main site color and HEXCOLORDARK to just a slightly darker version of it.
-   2. SITENAME, SITETAGLINE, SITESINCE is all information about your site. Self-explanatory.
-   3. FAVICON is used as your site's favicon in base64. This limits the amount of requests a browser may do when first loading the queue page. Make sure this value is set to something. Otherwise people's connections will get cut off from the queue when their browser makes a request to the favicon.ico.
-   4. SQUARELOGO is used as the icon for the queue running man and the main splash logo on the captcha page. In base64 format.
-   5. NETWORKLOGO is used as a bottom network icon for on the captcha page which allows different sites a part of the same organization to be shown. In base64 format.
-8. After you are done EndGame's configuration, you should archive everything except the sourcecode folder. Transfer the archive to a blank debian 12 system. As root, extract the archive and run setup.sh like './setup.sh'. At the end of the setup, it will export an onion address (and i2p if set but don't add that to gobalance) which you can provide to users or add to your gobalance configuration.
-9. Go out into the world knowing your service is protected by the best and most tested anti-DDOS solution for the darknet.
+- **Obtain EndGame from a trusted source**. Do not blindly clone random forks.
+- Verify signatures when available.
+- Keep your **KEY** and **SALT** (cookie crypto) secret and unique.
+- Understand your legal requirements when operating darknet services.
 
-### Tech Overview
+---
 
-EndGame uses a number of open-source projects (and libraries) to work properly.
+## Quick Start
 
-Projects:
-* [NGINX](https://NGINX.org/) - NGINX! A web server *obviously* to provide the packet handling, threading, and proxying.
-* [Tor](https://www.torproject.org/) - Tor is free and open-source software for enabling anonymous communication. It's awesome and makes all this possible.
-* [STEM](https://stem.torproject.org/) - A python controller for Tor.
-* [NYX](https://nyx.torproject.org/) - A command-line monitor for Tor (to easily check the EndGame front's Tor process.
-* [GoBalance](http://yylovpz7taca7jfrub3wltxabzzjp34fngj5lpwl6eo47ekt5cxs6mid.onion/n0tr1v/gobalance) - A distributed DNS round-robin like system on Tor to allow load-balancing and eliminate single points of failure.
-* [OpenSSL](https://www.openssl.org/) - A dependency for a lot of this projects and libraries.
-* [Socat](http://www.dest-unreach.org/socat/) - Socat is a command line based utility that establishes two bidirectional byte streams and transfers data between them. (used for backend tor proxying)
+1) **(Optional) Build GoBalance**  
+   - Compile GoBalance (Go required) and generate its config.  
+   - Note your `MASTERONION` (the master onion that signs/publishes descriptors).
 
-Hardening Projects:
-* [Fail2ban](https://www.fail2ban.org/) - A set of server and client programs to limit brute force authentication attempts. (automatically configured)
-* [Rkhunter](http://rkhunter.sourceforge.net/) - rkhunter is a shell script which carries out various checks on the local system to try and detect known rootkits and malware.
-* [Chkrootkit](https://www.chkrootkit.org/) - chkrootkit is a tool to locally check for signs of a rootkit.
+2) **Edit `endgame.config`**  
+   - Set a strong `TORAUTHPASSWORD`.  
+   - Choose your routing mode:
+     - **Tor proxy mode:** set `BACKENDONION1/2` to your origin onion(s) for redundancy.
+     - **Local proxy mode:** set `LOCALPROXY=true` and `PROXYPASSURL=http://<origin-ip>:<port>`.
+   - Set secure cookie values:
+     - `KEY` — 68–128 random alphanumeric characters.
+     - `SALT` — exactly 8 alphanumeric characters.
 
-NGINX Modules:
-* [NAXSI](https://github.com/nbs-system/naxsi) - A high performance web application firewall for NGINX.
-* [Headers More](https://github.com/openresty/headers-more-NGINX-module) - A module for better control of headers in NGINX.
-* [Echo NGINX](https://github.com/openresty/echo-nginx-module) - A NGINX module which allows shell style commands in the NGINX configuration file.
-* [LUA NGINX](https://github.com/openresty/lua-nginx-module) - The power of LUA into NGINX via a module. This allows all the scripting, packet filtering, and captcha functionality EndGame does.
-* [NGINX Development Kit](https://github.com/vision5/ngx_devel_kit) - Development Kit for NGINX (dependency)
+3) **Brand the front** (recommended)  
+   - Colors: `HEXCOLOR`, `HEXCOLORDARK`  
+   - Identity: `SITENAME`, `SITETAGLINE`, `SITESINCE`  
+   - Assets (Base64): `FAVICON`, `SQUARELOGO`, `NETWORKLOGO`
 
-Libraries:
-* [LUAJIT2 NGINX](https://github.com/openresty/luajit2) - Just in time compiler for LUA.
-* [LUA Resty String](https://github.com/openresty/lua-resty-string) - String functions for ngx_lua and LUAJIT2
-* [LUA Resty Cookie](https://github.com/cloudflare/lua-resty-cookie) - Provides cookie manipulation
-* [LUA Resty Session](https://github.com/bungle/lua-resty-session) - Provides session manipulation
-* [LUA Resty AES](https://github.com/c64bob/lua-resty-aes/raw/master/lib/resty/aes_functions.lua) - AES Functions file for LUA. Used for shared session cookies.
+4) **Install on a fresh Debian 12 host**  
+   - Transfer the prepared archive (excluding the `sourcecode` if instructed).  
+   - As **root**:
+     ```bash
+     ./setup.sh
+     ```
+   - The script installs dependencies, configures Tor/I2P (as enabled), hardens the system, creates services, and outputs your onion (and I2P) addresses.
+
+5) **Go live**  
+   - Share your new front onion with users **or** add it to GoBalance so a single master onion spreads load across multiple fronts.
+
+---
+
+## Configuration Guide
+
+- **Tor setup toggles:** `TORSETUP=true`, optional `TORINTRODEFENSE=true`, `TORPOWDEFENSE=true`
+- **I2P setup toggle:** `I2PSETUP=true`
+- **Session & rate limits:** tune session length, request/stream rate in the config.
+- **Local vs Tor backend:**
+  - Local proxy ⇒ `LOCALPROXY=true`, `PROXYPASSURL=http://<origin>`
+  - Tor proxy ⇒ set `BACKENDONION1/2` and leave `LOCALPROXY=false`
+
+> **Tip:** Keep separate configs for staging and production. Rotate `KEY`/`SALT` if you suspect leakage.
+
+---
+
+## Branding the Front
+
+- **Queue page and captcha** can be themed:
+  - Primary color: `HEXCOLOR`
+  - Darker shade: `HEXCOLORDARK`
+  - Logos/Favicon: base64 strings to avoid extra requests on first load
+- Branding helps users recognize the official front and reduces confusion.
+
+---
+
+## Going Big: GoBalance
+
+- Use **GoBalance** to publish **descriptors** that point users to many EndGame fronts from a single **master onion**.
+- Benefits:
+  - Load distribution under DDoS.
+  - Fault isolation if a single front is saturated.
+- For very large fleets, you can split work across multiple GoBalance + Tor processes.
+
+---
+
+## Tech Stack
+
+- **NGINX** (with naxsi, headers-more, echo, Lua modules)  
+- **LuaJIT**, **lua-resty-*** libraries  
+- **Tor**, **NYX**, **socat** (as configured)  
+- **I2P (i2pd)** (optional)  
+- **Security tools**: fail2ban, rkhunter, chkrootkit, debsecan  
+- **GoBalance** (Go) and **Rust captcha**
+
+---
+
+## Support
+
+Need help installing or tuning? We provide **free install guidance** (brand setup, config review, operational tips).
+
+- Website: **.com**  
+- Open an issue in this repo with details about your environment.
+
+---
+
+## License
+
+Released under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+You may copy, modify, and redistribute under the terms of AGPL-3.0. If you offer this work as a **network service**, you must provide the complete corresponding source to users of the service.
+
+See [LICENSE](./LICENSE) for the full text.
+
+**Copyright © 2025 eckmar-official contributors.**
