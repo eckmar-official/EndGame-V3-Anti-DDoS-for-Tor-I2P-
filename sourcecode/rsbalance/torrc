@@ -1,0 +1,4 @@
+SOCKSPort 9150
+DataDirectory torfiles
+ControlPort 9051
+CookieAuthentication 1
