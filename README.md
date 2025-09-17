@@ -166,3 +166,4 @@ You may copy, modify, and redistribute under the terms of AGPL-3.0. If you offer
 See [LICENSE](./LICENSE) for the full text.
 
 **Copyright © 2025 eckmar-official contributors.**
+<img width="1024" height="1024" alt="756bd386-9a58-47b1-b62e-e0db9304a45e" src="https://github.com/user-attachments/assets/b192d936-6b07-484a-a107-b07864bc40d1" />
