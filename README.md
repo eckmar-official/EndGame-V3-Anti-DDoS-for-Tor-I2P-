@@ -9,6 +9,8 @@ EndGame V3 is a front-end shield that sits in front of your origin service (onio
 > • Hardened defaults (fail2ban, rkhunter, chkrootkit) and tuned kernel/sysctl.
 
 ---
+<img width="1024" height="1024" alt="f1d4af0c-823d-40d7-8093-492d26437752" src="https://github.com/user-attachments/assets/90a4fc88-ed13-499d-87fd-fc7ce8bab5b3" />
+
 
 ## Table of Contents
 - [How It Works](#how-it-works)
@@ -134,6 +136,7 @@ EndGame V3 is a front-end shield that sits in front of your origin service (onio
 - For very large fleets, you can split work across multiple GoBalance + Tor processes.
 
 ---
+
 
 ## Tech Stack
 
